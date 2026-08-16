@@ -164,7 +164,6 @@
     position:relative;
     overflow:hidden;
     border-bottom:1px solid var(--divider);
-    touch-action:pan-y;
   }
   .row-wrapper:last-child{ border-bottom:none; }
 
@@ -196,6 +195,7 @@
     padding:13px 14px;
     transform:translateX(0);
     will-change:transform;
+    touch-action:none;
     -webkit-touch-callout:none;
     -webkit-user-select:none;
     user-select:none;
@@ -440,6 +440,7 @@
     var ghost = null;
     var placeholderIndex = -1;
     var rowHeight = 0;
+    var scrollStartY = 0, scrollStartTop = 0;
 
     function clearTimer(){
       if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
@@ -490,10 +491,11 @@
             state = 'swiping';
             try{ row.setPointerCapture(pointerId); }catch(err){}
           } else {
-            state = 'idle';
-            pointerId = null;
+            state = 'scrolling';
+            scrollStartY = e.clientY;
+            scrollStartTop = listEl.scrollTop;
             row.classList.remove('no-transition');
-            return;
+            try{ row.setPointerCapture(pointerId); }catch(err){}
           }
         } else {
           return;
@@ -503,6 +505,12 @@
         var ddx = e.clientX - startX;
         var t = Math.max(OPEN_OFFSET, Math.min(0, base + ddx));
         row.style.transform = 'translateX(' + t + 'px)';
+        return;
+      }
+      if(state === 'scrolling'){
+        var maxScroll = listEl.scrollHeight - listEl.clientHeight;
+        var next = scrollStartTop - (e.clientY - scrollStartY);
+        listEl.scrollTop = Math.max(0, Math.min(maxScroll, next));
         return;
       }
       if(state === 'dragging'){
