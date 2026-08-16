@@ -1,0 +1,597 @@
+<title>買い物リスト</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<style>
+  :root{
+    --bg:#FAF1E6;
+    --surface:#FFFDF9;
+    --surface-2:#FFF7EC;
+    --ink:#2B2420;
+    --ink-muted:#8A7F73;
+    --accent:#E0623A;
+    --accent-ink:#FFFBF6;
+    --divider:#E8DCCB;
+    --danger:#B0392E;
+    --danger-ink:#FFF3EF;
+    --shadow: 0 1px 2px rgba(43,36,32,0.06), 0 6px 20px rgba(43,36,32,0.06);
+    --radius-lg: 20px;
+    --radius-md: 12px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#1C1815;
+      --surface:#241E19;
+      --surface-2:#2A2320;
+      --ink:#F3E9DD;
+      --ink-muted:#9C8E7E;
+      --accent:#F2825C;
+      --accent-ink:#241005;
+      --divider:#3A322A;
+      --danger:#E2685A;
+      --danger-ink:#2A0F0A;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#1C1815;
+    --surface:#241E19;
+    --surface-2:#2A2320;
+    --ink:#F3E9DD;
+    --ink-muted:#9C8E7E;
+    --accent:#F2825C;
+    --accent-ink:#241005;
+    --divider:#3A322A;
+    --danger:#E2685A;
+    --danger-ink:#2A0F0A;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,"SF Pro JP",BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",system-ui,sans-serif;
+    overscroll-behavior-y:none;
+    display:flex;
+    justify-content:center;
+  }
+  .app{
+    width:100%;
+    max-width:480px;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 24px);
+    gap:14px;
+  }
+
+  .topbar{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:10px;
+    padding:0 4px;
+  }
+  .topbar h1{
+    margin:0;
+    font-size:22px;
+    font-weight:800;
+    letter-spacing:-0.02em;
+  }
+  .count{
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .addbar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--surface);
+    border:1px solid var(--divider);
+    border-radius:var(--radius-lg);
+    padding:8px 8px 8px 12px;
+    box-shadow:var(--shadow);
+  }
+  .mark-input{
+    width:34px;
+    flex:0 0 34px;
+    text-align:center;
+    font-size:18px;
+    border:none;
+    background:transparent;
+    color:var(--ink);
+    outline:none;
+    padding:6px 0;
+  }
+  .name-input{
+    flex:1;
+    min-width:0;
+    border:none;
+    background:transparent;
+    font-size:16px;
+    color:var(--ink);
+    outline:none;
+    padding:8px 4px;
+  }
+  .name-input::placeholder{ color:var(--ink-muted); }
+  .add-btn{
+    flex:0 0 auto;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    border:none;
+    background:var(--accent);
+    color:var(--accent-ink);
+    font-size:20px;
+    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:transform .12s ease;
+  }
+  .add-btn:active{ transform:scale(0.9); }
+
+  .list{
+    list-style:none;
+    margin:0;
+    padding:0;
+    background:var(--surface);
+    border-radius:var(--radius-lg);
+    border:1px solid var(--divider);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .empty{
+    padding:34px 16px;
+    text-align:center;
+    color:var(--ink-muted);
+    font-size:14px;
+  }
+
+  .row-wrapper{
+    position:relative;
+    overflow:hidden;
+    border-bottom:1px solid var(--divider);
+    touch-action:pan-y;
+  }
+  .row-wrapper:last-child{ border-bottom:none; }
+
+  .row-delete-bg{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:stretch;
+    justify-content:flex-end;
+    background:var(--danger);
+  }
+  .delete-btn{
+    width:84px;
+    border:none;
+    background:transparent;
+    color:var(--danger-ink);
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:0.02em;
+    cursor:pointer;
+  }
+
+  .row{
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--surface);
+    padding:13px 14px;
+    transform:translateX(0);
+    will-change:transform;
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+  .row.no-transition{ transition:none !important; }
+  .row:not(.no-transition){ transition:transform .18s ease; }
+  .row.placeholder{ opacity:0; }
+
+  .mark-cell{
+    flex:0 0 30px;
+    width:30px;
+    height:30px;
+    border-radius:9px;
+    border:1px dashed var(--divider);
+    background:var(--surface-2);
+    text-align:center;
+    font-size:16px;
+    color:var(--ink);
+    outline:none;
+    padding:0;
+    -webkit-touch-callout:default;
+    -webkit-user-select:text;
+    user-select:text;
+  }
+  .mark-cell:focus{ border-color:var(--accent); border-style:solid; }
+
+  .item-text{
+    flex:1;
+    min-width:0;
+    font-size:16px;
+    line-height:1.4;
+    word-break:break-word;
+    color:var(--ink);
+  }
+  .row.done .item-text{
+    text-decoration:line-through;
+    text-decoration-thickness:1.5px;
+    color:var(--ink-muted);
+  }
+  .row.done .mark-cell{ opacity:0.55; }
+
+  .drag-ghost{
+    position:fixed;
+    left:0;
+    pointer-events:none;
+    z-index:1000;
+    background:var(--surface);
+    border-radius:var(--radius-md);
+    box-shadow:0 10px 24px rgba(0,0,0,0.22);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:13px 14px;
+  }
+
+  .hint{
+    margin:2px 6px 0;
+    font-size:12px;
+    color:var(--ink-muted);
+    text-align:center;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .row, .add-btn{ transition:none !important; }
+  }
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <h1>買い物リスト</h1>
+    <span class="count" id="count">0件</span>
+  </header>
+
+  <div class="addbar">
+    <input id="markInput" class="mark-input" maxlength="2" placeholder="◯" aria-label="優先度マーク" autocomplete="off">
+    <input id="nameInput" class="name-input" placeholder="品名を入力（絵文字もOK）" aria-label="品名" autocomplete="off">
+    <button id="addBtn" class="add-btn" aria-label="追加">＋</button>
+  </div>
+
+  <ul class="list" id="list"></ul>
+  <p class="hint">ダブルタップで完了・長押しで並び替え・左スワイプで削除</p>
+</div>
+
+<script>
+(function(){
+  var STORAGE_KEY = 'do-shopping-list-v1';
+  var OPEN_OFFSET = -84;
+  var listEl = document.getElementById('list');
+  var countEl = document.getElementById('count');
+  var markInput = document.getElementById('markInput');
+  var nameInput = document.getElementById('nameInput');
+  var addBtn = document.getElementById('addBtn');
+
+  var items = load();
+  var openId = null;
+  var lastTap = {};
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return [
+      {id:uid(), mark:'🥬', text:'キャベツ', done:false},
+      {id:uid(), mark:'🥛', text:'牛乳', done:false},
+      {id:uid(), mark:'', text:'ティッシュ', done:false}
+    ];
+  }
+  function save(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }catch(e){}
+  }
+  function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+
+  function render(){
+    listEl.innerHTML = '';
+    countEl.textContent = items.length + '件';
+    if(items.length === 0){
+      var empty = document.createElement('li');
+      empty.className = 'empty';
+      empty.textContent = 'リストは空です。上の欄から追加してください。';
+      listEl.appendChild(empty);
+      return;
+    }
+    items.forEach(function(item){
+      listEl.appendChild(buildRow(item));
+    });
+  }
+
+  function buildRow(item){
+    var wrapper = document.createElement('li');
+    wrapper.className = 'row-wrapper';
+    wrapper.dataset.id = item.id;
+
+    var delBg = document.createElement('div');
+    delBg.className = 'row-delete-bg';
+    var delBtn = document.createElement('button');
+    delBtn.className = 'delete-btn';
+    delBtn.type = 'button';
+    delBtn.textContent = '削除';
+    delBtn.addEventListener('click', function(){ removeItem(item.id); });
+    delBg.appendChild(delBtn);
+
+    var row = document.createElement('div');
+    row.className = 'row' + (item.done ? ' done' : '');
+    row.dataset.id = item.id;
+
+    var mark = document.createElement('input');
+    mark.className = 'mark-cell';
+    mark.maxLength = 2;
+    mark.value = item.mark || '';
+    mark.setAttribute('aria-label', '優先度マーク');
+    mark.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+    mark.addEventListener('input', function(){
+      item.mark = mark.value;
+      save();
+    });
+
+    var text = document.createElement('span');
+    text.className = 'item-text';
+    text.textContent = item.text;
+
+    row.appendChild(mark);
+    row.appendChild(text);
+    wrapper.appendChild(delBg);
+    wrapper.appendChild(row);
+
+    attachRowGestures(wrapper, row, item);
+    return wrapper;
+  }
+
+  function toggleDone(item){
+    var wasDone = item.done;
+    item.done = !wasDone;
+    if(item.done){
+      var idx = items.indexOf(item);
+      if(idx > -1){
+        items.splice(idx, 1);
+        items.push(item);
+      }
+    }
+    save();
+    render();
+  }
+
+  function removeItem(id){
+    var wrapper = listEl.querySelector('.row-wrapper[data-id="'+id+'"]');
+    if(wrapper){
+      wrapper.style.transition = 'max-height .18s ease, opacity .18s ease';
+      wrapper.style.maxHeight = wrapper.offsetHeight + 'px';
+      requestAnimationFrame(function(){
+        wrapper.style.maxHeight = '0px';
+        wrapper.style.opacity = '0';
+      });
+      wrapper.addEventListener('transitionend', function(){
+        items = items.filter(function(it){ return it.id !== id; });
+        save();
+        render();
+      }, {once:true});
+    } else {
+      items = items.filter(function(it){ return it.id !== id; });
+      save();
+      render();
+    }
+  }
+
+  function closeOpenRow(){
+    if(openId == null) return;
+    var row = listEl.querySelector('.row[data-id="'+openId+'"]');
+    if(row) row.style.transform = 'translateX(0px)';
+    openId = null;
+  }
+
+  function addItem(keepFocus){
+    var text = nameInput.value.trim();
+    if(!text) { if(keepFocus) nameInput.focus(); return; }
+    var mark = markInput.value.trim();
+    items.unshift({id:uid(), mark:mark, text:text, done:false});
+    nameInput.value = '';
+    markInput.value = '';
+    save();
+    render();
+    if(keepFocus) nameInput.focus();
+  }
+
+  addBtn.addEventListener('click', function(){ addItem(true); });
+  nameInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); addItem(false); nameInput.blur(); }
+  });
+  markInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); nameInput.focus(); }
+  });
+
+  var LONGPRESS_MS = 480;
+  var MOVE_THRESHOLD = 10;
+
+  function attachRowGestures(wrapper, row, item){
+    var pointerId = null;
+    var state = 'idle';
+    var startX = 0, startY = 0, base = 0;
+    var longPressTimer = null;
+    var ghost = null;
+    var placeholderIndex = -1;
+    var rowHeight = 0;
+
+    function clearTimer(){
+      if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+    }
+
+    function onPointerDown(e){
+      if(e.target === row.querySelector('.mark-cell')) return;
+      if(state !== 'idle') return;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      base = (openId === item.id) ? OPEN_OFFSET : 0;
+      state = 'pending';
+      row.classList.add('no-transition');
+      longPressTimer = setTimeout(function(){
+        if(state !== 'pending') return;
+        startDrag(e);
+      }, LONGPRESS_MS);
+    }
+
+    function startDrag(e){
+      state = 'dragging';
+      clearTimer();
+      try{ row.setPointerCapture(pointerId); }catch(err){}
+      if(navigator.vibrate) navigator.vibrate(12);
+      var rect = row.getBoundingClientRect();
+      rowHeight = rect.height;
+
+      ghost = row.cloneNode(true);
+      ghost.classList.add('drag-ghost');
+      ghost.style.width = rect.width + 'px';
+      ghost.style.top = rect.top + 'px';
+      ghost.style.left = rect.left + 'px';
+      document.body.appendChild(ghost);
+
+      row.classList.add('placeholder');
+      row.style.transform = 'translateX(0px)';
+      wrapper.style.height = rowHeight + 'px';
+      placeholderIndex = Array.prototype.indexOf.call(listEl.children, wrapper);
+    }
+
+    function onPointerMove(e){
+      if(state === 'pending'){
+        var dx = e.clientX - startX, dy = e.clientY - startY;
+        if(Math.abs(dx) > MOVE_THRESHOLD || Math.abs(dy) > MOVE_THRESHOLD){
+          clearTimer();
+          if(Math.abs(dx) > Math.abs(dy)){
+            state = 'swiping';
+            try{ row.setPointerCapture(pointerId); }catch(err){}
+          } else {
+            state = 'idle';
+            pointerId = null;
+            row.classList.remove('no-transition');
+          }
+        }
+        return;
+      }
+      if(state === 'swiping'){
+        var ddx = e.clientX - startX;
+        var t = Math.max(OPEN_OFFSET, Math.min(0, base + ddx));
+        row.style.transform = 'translateX(' + t + 'px)';
+        return;
+      }
+      if(state === 'dragging'){
+        var gy = e.clientY - (rowHeight/2);
+        ghost.style.top = gy + 'px';
+        var siblings = Array.prototype.slice.call(listEl.children);
+        var myIdx = siblings.indexOf(wrapper);
+        var cy = e.clientY;
+        for(var i=0;i<siblings.length;i++){
+          var sib = siblings[i];
+          if(sib === wrapper) continue;
+          var r = sib.getBoundingClientRect();
+          var mid = r.top + r.height/2;
+          if(cy < mid && i < myIdx){
+            listEl.insertBefore(wrapper, sib);
+            moveItemInArray(item.id, i);
+            break;
+          } else if(cy > mid && i > myIdx){
+            listEl.insertBefore(wrapper, sib.nextSibling);
+            moveItemInArray(item.id, i);
+            break;
+          }
+        }
+      }
+    }
+
+    function moveItemInArray(id, targetIndex){
+      var idx = items.findIndex(function(it){ return it.id === id; });
+      if(idx === -1) return;
+      var it = items.splice(idx,1)[0];
+      items.splice(targetIndex,0,it);
+    }
+
+    function endGesture(){
+      if(state === 'pending'){
+        clearTimer();
+        row.classList.remove('no-transition');
+        handleTap();
+      } else if(state === 'swiping'){
+        row.classList.remove('no-transition');
+        var cur = row.style.transform;
+        var val = parseFloat(cur.replace('translateX(','')) || 0;
+        if(val < OPEN_OFFSET/2){
+          row.style.transform = 'translateX('+OPEN_OFFSET+'px)';
+          if(openId && openId !== item.id) closeOpenRow();
+          openId = item.id;
+        } else {
+          row.style.transform = 'translateX(0px)';
+          if(openId === item.id) openId = null;
+        }
+      } else if(state === 'dragging'){
+        row.classList.remove('placeholder');
+        row.classList.add('no-transition');
+        wrapper.style.height = '';
+        if(ghost){ ghost.remove(); ghost = null; }
+        save();
+        requestAnimationFrame(function(){ row.classList.remove('no-transition'); });
+      }
+      state = 'idle';
+      pointerId = null;
+    }
+
+    function handleTap(){
+      if(openId && openId !== item.id){ closeOpenRow(); return; }
+      if(openId === item.id){ closeOpenRow(); return; }
+      var now = Date.now();
+      var prev = lastTap[item.id] || 0;
+      if(now - prev < 350){
+        lastTap[item.id] = 0;
+        toggleDone(item);
+      } else {
+        lastTap[item.id] = now;
+      }
+    }
+
+    function onPointerUp(e){
+      if(pointerId !== null && e.pointerId !== pointerId) return;
+      endGesture();
+    }
+    function onPointerCancel(e){
+      if(pointerId !== null && e.pointerId !== pointerId) return;
+      if(state === 'dragging'){
+        row.classList.remove('placeholder');
+        wrapper.style.height = '';
+        if(ghost){ ghost.remove(); ghost = null; }
+      } else if(state === 'swiping'){
+        row.style.transform = (openId === item.id) ? 'translateX('+OPEN_OFFSET+'px)' : 'translateX(0px)';
+      }
+      row.classList.remove('no-transition');
+      state = 'idle';
+      pointerId = null;
+    }
+
+    row.addEventListener('pointerdown', onPointerDown);
+    row.addEventListener('pointermove', onPointerMove);
+    row.addEventListener('pointerup', onPointerUp);
+    row.addEventListener('pointercancel', onPointerCancel);
+  }
+
+  render();
+})();
+</script>
