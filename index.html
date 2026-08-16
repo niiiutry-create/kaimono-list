@@ -12,6 +12,8 @@
     --divider:#E8DCCB;
     --danger:#B0392E;
     --danger-ink:#FFF3EF;
+    --success:#5B8A66;
+    --success-ink:#FFFBF6;
     --shadow: 0 1px 2px rgba(43,36,32,0.06), 0 6px 20px rgba(43,36,32,0.06);
     --radius-lg: 20px;
     --radius-md: 12px;
@@ -28,6 +30,8 @@
       --divider:#3A322A;
       --danger:#E2685A;
       --danger-ink:#2A0F0A;
+      --success:#7FBF95;
+      --success-ink:#0E2016;
       --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
     }
   }
@@ -42,6 +46,8 @@
     --divider:#3A322A;
     --danger:#E2685A;
     --danger-ink:#2A0F0A;
+    --success:#7FBF95;
+    --success-ink:#0E2016;
     --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
   }
 
@@ -169,7 +175,7 @@
 
   .row-delete-bg{
     position:absolute;
-    inset:0;
+    top:0; bottom:0; left:50%; right:0;
     display:flex;
     align-items:stretch;
     justify-content:flex-end;
@@ -184,6 +190,23 @@
     font-weight:700;
     letter-spacing:0.02em;
     cursor:pointer;
+  }
+
+  .row-complete-bg{
+    position:absolute;
+    top:0; bottom:0; left:0; right:50%;
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    background:var(--success);
+  }
+  .complete-label{
+    width:84px;
+    text-align:center;
+    color:var(--success-ink);
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:0.02em;
   }
 
   .row{
@@ -277,13 +300,15 @@
   </div>
 
   <ul class="list" id="list"></ul>
-  <p class="hint">ダブルタップで完了・長押しで並び替え・左スワイプで削除</p>
+  <p class="hint">右スワイプで完了・長押しで並び替え・左スワイプで削除</p>
 </div>
 
 <script>
 (function(){
   var STORAGE_KEY = 'do-shopping-list-v1';
   var OPEN_OFFSET = -84;
+  var COMPLETE_OFFSET = 84;
+  var COMPLETE_THRESHOLD = 56;
   var listEl = document.getElementById('list');
   var countEl = document.getElementById('count');
   var markInput = document.getElementById('markInput');
@@ -292,7 +317,6 @@
 
   var items = load();
   var openId = null;
-  var lastTap = {};
 
   function load(){
     try{
@@ -330,6 +354,13 @@
     wrapper.className = 'row-wrapper';
     wrapper.dataset.id = item.id;
 
+    var completeBg = document.createElement('div');
+    completeBg.className = 'row-complete-bg';
+    var completeLabel = document.createElement('span');
+    completeLabel.className = 'complete-label';
+    completeLabel.textContent = item.done ? '↺ 取り消し' : '✓ 完了';
+    completeBg.appendChild(completeLabel);
+
     var delBg = document.createElement('div');
     delBg.className = 'row-delete-bg';
     var delBtn = document.createElement('button');
@@ -360,6 +391,7 @@
 
     row.appendChild(mark);
     row.appendChild(text);
+    wrapper.appendChild(completeBg);
     wrapper.appendChild(delBg);
     wrapper.appendChild(row);
 
@@ -503,7 +535,8 @@
       }
       if(state === 'swiping'){
         var ddx = e.clientX - startX;
-        var t = Math.max(OPEN_OFFSET, Math.min(0, base + ddx));
+        var maxBound = (base < 0) ? 0 : COMPLETE_OFFSET;
+        var t = Math.max(OPEN_OFFSET, Math.min(maxBound, base + ddx));
         row.style.transform = 'translateX(' + t + 'px)';
         return;
       }
@@ -553,10 +586,14 @@
         row.classList.remove('no-transition');
         var cur = row.style.transform;
         var val = parseFloat(cur.replace('translateX(','')) || 0;
-        if(val < OPEN_OFFSET/2){
+        if(val <= OPEN_OFFSET/2){
           row.style.transform = 'translateX('+OPEN_OFFSET+'px)';
           if(openId && openId !== item.id) closeOpenRow();
           openId = item.id;
+        } else if(val >= COMPLETE_THRESHOLD){
+          row.style.transform = 'translateX(0px)';
+          if(openId === item.id) openId = null;
+          toggleDone(item);
         } else {
           row.style.transform = 'translateX(0px)';
           if(openId === item.id) openId = null;
@@ -574,16 +611,7 @@
     }
 
     function handleTap(){
-      if(openId && openId !== item.id){ closeOpenRow(); return; }
-      if(openId === item.id){ closeOpenRow(); return; }
-      var now = Date.now();
-      var prev = lastTap[item.id] || 0;
-      if(now - prev < 350){
-        lastTap[item.id] = 0;
-        toggleDone(item);
-      } else {
-        lastTap[item.id] = now;
-      }
+      if(openId != null){ closeOpenRow(); }
     }
 
     function onPointerUp(e){
