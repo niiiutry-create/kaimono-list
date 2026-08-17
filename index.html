@@ -77,7 +77,7 @@
     height:100dvh;
     display:flex;
     flex-direction:column;
-    padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 24px);
+    padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 12px);
     gap:14px;
     overflow:hidden;
   }
@@ -228,7 +228,7 @@
     align-items:center;
     gap:10px;
     background:var(--surface);
-    padding:12px 14px;
+    padding:9.5px 14px;
     transform:translateX(0);
     will-change:transform;
     touch-action:none;
@@ -289,14 +289,6 @@
     padding:13px 14px;
   }
 
-  .hint{
-    flex:0 0 auto;
-    margin:2px 6px 0;
-    font-size:12px;
-    color:var(--ink-muted);
-    text-align:center;
-  }
-
   @media (prefers-reduced-motion: reduce){
     .row, .add-btn{ transition:none !important; }
   }
@@ -313,12 +305,11 @@
 
   <div class="addbar">
     <button type="button" id="markInput" class="mark-input priority-swatch" data-priority="0" aria-label="優先度: なし"></button>
-    <input id="nameInput" class="name-input" placeholder="品名を入力（絵文字もOK）" aria-label="品名" autocomplete="off">
+    <input id="nameInput" class="name-input" placeholder="品名を入力" aria-label="品名" autocomplete="off">
     <button id="addBtn" class="add-btn" aria-label="追加">＋</button>
   </div>
 
   <ul class="list" id="list"></ul>
-  <p class="hint">右スワイプで完了・長押しで並び替え・左スワイプで削除</p>
 </div>
 
 <script>
