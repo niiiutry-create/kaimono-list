@@ -87,12 +87,22 @@
     font-weight:800;
     letter-spacing:-0.02em;
   }
+  .topbar-right{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+  }
   .count{
     font-size:13px;
     font-weight:600;
     color:var(--ink-muted);
     font-variant-numeric: tabular-nums;
   }
+  .sync-status{
+    font-size:12px;
+    color:var(--ink-muted);
+  }
+  .sync-status.is-offline{ color:var(--danger); }
 
   .addbar{
     flex:0 0 auto;
@@ -290,7 +300,10 @@
 <div class="app">
   <header class="topbar">
     <h1>買い物リスト</h1>
-    <span class="count" id="count">0件</span>
+    <div class="topbar-right">
+      <span class="sync-status" id="syncStatus" hidden></span>
+      <span class="count" id="count">0件</span>
+    </div>
   </header>
 
   <div class="addbar">
@@ -311,12 +324,87 @@
   var COMPLETE_THRESHOLD = 56;
   var listEl = document.getElementById('list');
   var countEl = document.getElementById('count');
+  var syncStatusEl = document.getElementById('syncStatus');
   var markInput = document.getElementById('markInput');
   var nameInput = document.getElementById('nameInput');
   var addBtn = document.getElementById('addBtn');
 
-  var items = load();
-  var openId = null;
+  // ---- Optional cross-device sync (Firebase Realtime Database) ----
+  // Fill in your project's config (Firebase console > Project settings > your web app)
+  // to sync this list across devices. Left as-is, the app just uses local storage.
+  var FIREBASE_CONFIG = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT"
+  };
+  var FIREBASE_ENABLED = FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
+  var dbRef = null;
+  var fb = null; // holds {set, onValue} once the SDK has loaded
+  var syncTimer = null;
+  var gestureActive = false;
+  var pendingRemote = null;
+
+  if(FIREBASE_ENABLED){
+    // Loaded on demand (not a static import) so the app has zero network
+    // dependency and works fully offline when sync isn't configured.
+    Promise.all([
+      import("https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js")
+    ]).then(function(mods){
+      var initializeApp = mods[0].initializeApp;
+      var getDatabase = mods[1].getDatabase, ref = mods[1].ref, onValue = mods[1].onValue, set = mods[1].set;
+      var app = initializeApp(FIREBASE_CONFIG);
+      var db = getDatabase(app);
+      dbRef = ref(db, 'sharedList');
+      fb = { onValue: onValue, set: set };
+
+      syncStatusEl.hidden = false;
+      syncStatusEl.textContent = '☁️ 同期中';
+
+      onValue(ref(db, '.info/connected'), function(snap){
+        var connected = snap.val() === true;
+        syncStatusEl.textContent = connected ? '☁️ 同期中' : '📵 オフライン';
+        syncStatusEl.classList.toggle('is-offline', !connected);
+      });
+
+      onValue(dbRef, function(snapshot){
+        var data = snapshot.val();
+        if(data == null){
+          pushToFirebase();
+          return;
+        }
+        if(JSON.stringify(data) === JSON.stringify(items)) return;
+        if(gestureActive){
+          pendingRemote = data;
+        } else {
+          applyRemote(data);
+        }
+      });
+    }).catch(function(err){
+      console.warn('端末間の同期を利用できませんでした。この端末内のみの保存で続けます。', err);
+    });
+  }
+
+  function applyRemote(data){
+    items = data;
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }catch(e){}
+    render();
+  }
+
+  function finishGesture(){
+    gestureActive = false;
+    if(pendingRemote){
+      var data = pendingRemote;
+      pendingRemote = null;
+      applyRemote(data);
+    }
+  }
+
+  function pushToFirebase(){
+    if(!dbRef || !fb) return;
+    fb.set(dbRef, items).catch(function(){});
+  }
 
   function load(){
     try{
@@ -331,8 +419,13 @@
   }
   function save(){
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }catch(e){}
+    if(syncTimer) clearTimeout(syncTimer);
+    syncTimer = setTimeout(pushToFirebase, 300);
   }
   function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+
+  var items = load();
+  var openId = null;
 
   function render(){
     listEl.innerHTML = '';
@@ -487,6 +580,7 @@
       scrollStartTop = listEl.scrollTop;
       base = (openId === item.id) ? OPEN_OFFSET : 0;
       state = 'pending';
+      gestureActive = true;
       row.classList.add('no-transition');
       longPressTimer = setTimeout(function(){
         if(state !== 'pending') return;
@@ -610,6 +704,7 @@
       }
       state = 'idle';
       pointerId = null;
+      finishGesture();
     }
 
     function handleTap(){
@@ -632,6 +727,7 @@
       row.classList.remove('no-transition');
       state = 'idle';
       pointerId = null;
+      finishGesture();
     }
 
     row.addEventListener('pointerdown', onPointerDown);
