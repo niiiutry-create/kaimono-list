@@ -498,11 +498,13 @@
   function toggleDone(item){
     var wasDone = item.done;
     item.done = !wasDone;
-    if(item.done){
-      var idx = items.indexOf(item);
-      if(idx > -1){
-        items.splice(idx, 1);
+    var idx = items.indexOf(item);
+    if(idx > -1){
+      items.splice(idx, 1);
+      if(item.done){
         items.push(item);
+      } else {
+        items.unshift(item);
       }
     }
     save();
