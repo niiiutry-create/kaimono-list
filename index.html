@@ -306,7 +306,7 @@
 
   <div class="addbar">
     <button type="button" id="markInput" class="mark-input priority-swatch" data-priority="0" aria-label="優先度: なし"></button>
-    <input id="nameInput" class="name-input" placeholder="品名を入力" aria-label="品名" autocomplete="off">
+    <input id="itemInput" name="item-query" class="name-input" placeholder="品名を入力" aria-label="品名" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <button id="addBtn" class="add-btn" aria-label="追加">＋</button>
   </div>
 
@@ -328,7 +328,7 @@
   var countEl = document.getElementById('count');
   var syncStatusEl = document.getElementById('syncStatus');
   var markInput = document.getElementById('markInput');
-  var nameInput = document.getElementById('nameInput');
+  var nameInput = document.getElementById('itemInput');
   var addBtn = document.getElementById('addBtn');
 
   // ---- Optional cross-device sync (Firebase Realtime Database) ----
