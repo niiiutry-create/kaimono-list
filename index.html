@@ -429,6 +429,29 @@
   var items = load();
   var openId = null;
 
+  var momentumId = null;
+  function cancelMomentum(){
+    if(momentumId){ cancelAnimationFrame(momentumId); momentumId = null; }
+  }
+  function startMomentum(v){
+    cancelMomentum();
+    var lastTs = null;
+    function step(ts){
+      if(lastTs == null) lastTs = ts;
+      var dt = Math.min(ts - lastTs, 32);
+      lastTs = ts;
+      v *= Math.pow(0.05, dt / 1000);
+      var maxScroll = listEl.scrollHeight - listEl.clientHeight;
+      var next = listEl.scrollTop + v * dt;
+      if(next <= 0){ listEl.scrollTop = 0; momentumId = null; return; }
+      if(next >= maxScroll){ listEl.scrollTop = maxScroll; momentumId = null; return; }
+      listEl.scrollTop = next;
+      if(Math.abs(v) < 0.02){ momentumId = null; return; }
+      momentumId = requestAnimationFrame(step);
+    }
+    momentumId = requestAnimationFrame(step);
+  }
+
   function render(){
     listEl.innerHTML = '';
     countEl.textContent = items.length + '件';
@@ -575,6 +598,7 @@
     var rowHeight = 0;
     var lastTargetPos = -1;
     var scrollStartTop = 0;
+    var lastMoveTs = 0, lastMoveY = 0, velocityY = 0;
 
     function clearTimer(){
       if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
@@ -583,6 +607,7 @@
     function onPointerDown(e){
       if(e.target === row.querySelector('.mark-cell')) return;
       if(state !== 'idle') return;
+      cancelMomentum();
       pointerId = e.pointerId;
       startX = e.clientX;
       startY = e.clientY;
@@ -629,6 +654,9 @@
           } else {
             state = 'scrolling';
             row.classList.remove('no-transition');
+            lastMoveTs = e.timeStamp;
+            lastMoveY = e.clientY;
+            velocityY = 0;
             try{ row.setPointerCapture(pointerId); }catch(err){}
           }
         } else {
@@ -646,6 +674,13 @@
         var maxScroll = listEl.scrollHeight - listEl.clientHeight;
         var next = scrollStartTop - (e.clientY - startY);
         listEl.scrollTop = Math.max(0, Math.min(maxScroll, next));
+        var dt = e.timeStamp - lastMoveTs;
+        if(dt > 0){
+          var instV = (e.clientY - lastMoveY) / dt;
+          velocityY = velocityY * 0.7 + instV * 0.3;
+        }
+        lastMoveTs = e.timeStamp;
+        lastMoveY = e.clientY;
         return;
       }
       if(state === 'dragging'){
@@ -703,6 +738,8 @@
           row.style.transform = 'translateX(0px)';
           if(openId === item.id) openId = null;
         }
+      } else if(state === 'scrolling'){
+        startMomentum(-velocityY);
       } else if(state === 'dragging'){
         row.classList.remove('placeholder');
         row.classList.add('no-transition');
