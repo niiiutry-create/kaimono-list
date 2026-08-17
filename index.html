@@ -470,9 +470,9 @@
     var startX = 0, startY = 0, base = 0;
     var longPressTimer = null;
     var ghost = null;
-    var placeholderIndex = -1;
     var rowHeight = 0;
-    var scrollStartY = 0, scrollStartTop = 0;
+    var lastTargetPos = -1;
+    var scrollStartTop = 0;
 
     function clearTimer(){
       if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
@@ -484,6 +484,7 @@
       pointerId = e.pointerId;
       startX = e.clientX;
       startY = e.clientY;
+      scrollStartTop = listEl.scrollTop;
       base = (openId === item.id) ? OPEN_OFFSET : 0;
       state = 'pending';
       row.classList.add('no-transition');
@@ -511,7 +512,7 @@
       row.classList.add('placeholder');
       row.style.transform = 'translateX(0px)';
       wrapper.style.height = rowHeight + 'px';
-      placeholderIndex = Array.prototype.indexOf.call(listEl.children, wrapper);
+      lastTargetPos = -1;
     }
 
     function onPointerMove(e){
@@ -524,8 +525,6 @@
             try{ row.setPointerCapture(pointerId); }catch(err){}
           } else {
             state = 'scrolling';
-            scrollStartY = e.clientY;
-            scrollStartTop = listEl.scrollTop;
             row.classList.remove('no-transition');
             try{ row.setPointerCapture(pointerId); }catch(err){}
           }
@@ -542,30 +541,33 @@
       }
       if(state === 'scrolling'){
         var maxScroll = listEl.scrollHeight - listEl.clientHeight;
-        var next = scrollStartTop - (e.clientY - scrollStartY);
+        var next = scrollStartTop - (e.clientY - startY);
         listEl.scrollTop = Math.max(0, Math.min(maxScroll, next));
         return;
       }
       if(state === 'dragging'){
         var gy = e.clientY - (rowHeight/2);
         ghost.style.top = gy + 'px';
-        var siblings = Array.prototype.slice.call(listEl.children);
-        var myIdx = siblings.indexOf(wrapper);
+        var others = Array.prototype.slice.call(listEl.children).filter(function(s){ return s !== wrapper; });
         var cy = e.clientY;
-        for(var i=0;i<siblings.length;i++){
-          var sib = siblings[i];
-          if(sib === wrapper) continue;
-          var r = sib.getBoundingClientRect();
+        var targetPos = others.length;
+        for(var i=0;i<others.length;i++){
+          var r = others[i].getBoundingClientRect();
           var mid = r.top + r.height/2;
-          if(cy < mid && i < myIdx){
-            listEl.insertBefore(wrapper, sib);
-            moveItemInArray(item.id, i);
-            break;
-          } else if(cy > mid && i > myIdx){
-            listEl.insertBefore(wrapper, sib.nextSibling);
-            moveItemInArray(item.id, i);
-            break;
+          if(cy < mid){ targetPos = i; break; }
+        }
+        if(targetPos !== lastTargetPos){
+          lastTargetPos = targetPos;
+          if(targetPos >= others.length){
+            listEl.appendChild(wrapper);
+          } else {
+            listEl.insertBefore(wrapper, others[targetPos]);
           }
+          moveItemInArray(item.id, targetPos);
+          // insertBefore/appendChild on the captured element's ancestor releases
+          // pointer capture even for a same-parent reorder; re-acquire it so
+          // subsequent moves in this same drag keep being tracked.
+          try{ row.setPointerCapture(pointerId); }catch(err){}
         }
       }
     }
