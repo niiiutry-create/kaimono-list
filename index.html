@@ -557,7 +557,7 @@
       buyBtn.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
       buyBtn.addEventListener('click', function(e){
         e.stopPropagation();
-        toggleDone(item);
+        toggleDone(item, true);
       });
       row.appendChild(buyBtn);
     }
@@ -570,12 +570,14 @@
     return wrapper;
   }
 
-  function toggleDone(item){
+  function toggleDone(item, recordPurchase){
     var wasDone = item.done;
     item.done = !wasDone;
     if(item.done){
-      var now = new Date();
-      item.purchasedAt = { m: now.getMonth() + 1, d: now.getDate() };
+      if(recordPurchase){
+        var now = new Date();
+        item.purchasedAt = { m: now.getMonth() + 1, d: now.getDate() };
+      }
     } else {
       item.purchasedAt = null;
     }
