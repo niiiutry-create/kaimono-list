@@ -277,6 +277,30 @@
   }
   .row.done .mark-cell{ opacity:0.55; }
 
+  .buy-btn{
+    flex:0 0 auto;
+    border:none;
+    border-radius:999px;
+    background:var(--accent);
+    color:var(--accent-ink);
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.02em;
+    padding:6px 12px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:transform .12s ease;
+  }
+  .buy-btn:active{ transform:scale(0.92); }
+
+  .purchased-label{
+    flex:0 0 auto;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink-muted);
+    white-space:nowrap;
+  }
+
   .drag-ghost{
     position:fixed;
     left:0;
@@ -511,6 +535,27 @@
 
     row.appendChild(mark);
     row.appendChild(text);
+
+    if(item.done){
+      var purchasedLabel = document.createElement('span');
+      purchasedLabel.className = 'purchased-label';
+      if(item.purchasedAt){
+        purchasedLabel.textContent = item.purchasedAt.m + '月' + item.purchasedAt.d + '日購入';
+      }
+      row.appendChild(purchasedLabel);
+    } else {
+      var buyBtn = document.createElement('button');
+      buyBtn.type = 'button';
+      buyBtn.className = 'buy-btn';
+      buyBtn.textContent = '購入';
+      buyBtn.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+      buyBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        toggleDone(item);
+      });
+      row.appendChild(buyBtn);
+    }
+
     wrapper.appendChild(completeBg);
     wrapper.appendChild(delBg);
     wrapper.appendChild(row);
@@ -522,6 +567,12 @@
   function toggleDone(item){
     var wasDone = item.done;
     item.done = !wasDone;
+    if(item.done){
+      var now = new Date();
+      item.purchasedAt = { m: now.getMonth() + 1, d: now.getDate() };
+    } else {
+      item.purchasedAt = null;
+    }
     var idx = items.indexOf(item);
     if(idx > -1){
       items.splice(idx, 1);
