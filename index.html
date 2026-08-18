@@ -583,7 +583,9 @@
     if(idx > -1){
       items.splice(idx, 1);
       if(item.done){
-        items.push(item);
+        var insertAt = items.findIndex(function(it){ return it.done; });
+        if(insertAt === -1) insertAt = items.length;
+        items.splice(insertAt, 0, item);
       } else {
         items.unshift(item);
       }
