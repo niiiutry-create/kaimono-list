@@ -3,16 +3,16 @@
 <link rel="apple-touch-icon" href="icon.png">
 <style>
   :root{
-    --bg:#FAF1E6;
-    --surface:#FFFDF9;
-    --surface-2:#FFF7EC;
+    --bg:#F0DDBE;
+    --surface:#FFFAF2;
+    --surface-2:#FBF0DE;
     --ink:#2B2420;
     --ink-muted:#8A7F73;
     --accent:#E0623A;
     --accent-ink:#FFFBF6;
     --accent-soft:#F3C9B7;
     --accent-soft-ink:#8A4224;
-    --divider:#E8DCCB;
+    --divider:#E3CFAE;
     --danger:#B0392E;
     --danger-ink:#FFF3EF;
     --success:#5B8A66;
@@ -35,7 +35,7 @@
       --accent-ink:#241005;
       --accent-soft:#6E4838;
       --accent-soft-ink:#FBE3D6;
-      --divider:#3A322A;
+      --divider:#3D3120;
       --danger:#E2685A;
       --danger-ink:#2A0F0A;
       --success:#7FBF95;
@@ -47,16 +47,16 @@
     }
   }
   :root[data-theme="dark"]{
-    --bg:#1C1815;
-    --surface:#241E19;
-    --surface-2:#2A2320;
+    --bg:#211A12;
+    --surface:#28201A;
+    --surface-2:#2E241C;
     --ink:#F3E9DD;
     --ink-muted:#9C8E7E;
     --accent:#F2825C;
     --accent-ink:#241005;
     --accent-soft:#6E4838;
     --accent-soft-ink:#FBE3D6;
-    --divider:#3A322A;
+    --divider:#3D3120;
     --danger:#E2685A;
     --danger-ink:#2A0F0A;
     --success:#7FBF95;
@@ -87,6 +87,24 @@
     padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 12px);
     gap:14px;
     overflow:hidden;
+    position:relative;
+  }
+
+  .bottom-hint{
+    position:absolute;
+    left:16px;
+    right:16px;
+    bottom:calc(env(safe-area-inset-bottom) + 1px);
+    margin:0;
+    text-align:center;
+    font-size:10px;
+    line-height:1;
+    color:var(--ink-muted);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    pointer-events:none;
+    opacity:0.75;
   }
 
   .topbar{
@@ -342,6 +360,7 @@
   </div>
 
   <ul class="list" id="list"></ul>
+  <p class="bottom-hint">右スワイプで完了・長押しで並び替え・左スワイプで削除</p>
 </div>
 
 <script>
