@@ -557,6 +557,7 @@
       buyBtn.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
       buyBtn.addEventListener('click', function(e){
         e.stopPropagation();
+        item.priority = 0;
         toggleDone(item, true);
       });
       row.appendChild(buyBtn);
