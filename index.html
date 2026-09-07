@@ -795,6 +795,7 @@
         } else if(val >= COMPLETE_THRESHOLD){
           row.style.transform = 'translateX(0px)';
           if(openId === item.id) openId = null;
+          item.priority = 0;
           toggleDone(item);
         } else {
           row.style.transform = 'translateX(0px)';
