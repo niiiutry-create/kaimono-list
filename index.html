@@ -372,6 +372,10 @@
     projectId: "kaimono-list-ce76d"
   };
   var FIREBASE_ENABLED = FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
+  // One-time recovery seed: restores the list saved under the old shared
+  // top-level "sharedList" path before it moved to "sharedList/tatsuo".
+  // Only used the first time this path is empty; safe to delete afterward.
+  var MIGRATION_SEED = [{"done":false,"id":"s7cft1fjcoomsxa16wt","priority":0,"text":"お菓子　🍩🍪"},{"done":false,"id":"vlyucbjkslmsx1iq4n","priority":2,"text":"ツナ缶　🥫"},{"done":false,"id":"fujjlneseb9msxa7tp0","priority":3,"text":"お米　🍚"},{"done":false,"id":"zvc1hesks3emsx75nyn","priority":3,"text":"サラダ油"},{"done":true,"id":"znolo64e46msx1ezwj","priority":0,"text":"トイレットペーパー　🧻"},{"done":true,"id":"0cvb2ci55spemszg0joy","priority":0,"text":"パン　🍞🥐"},{"done":true,"id":"n60oy5hg20jmsxa7605","priority":0,"text":"アイス　🍦"},{"done":true,"id":"bqmtglmvw4msx1l3t3","priority":0,"purchasedAt":{"d":7,"m":9},"text":"たまご　🥚"},{"done":true,"id":"ql9wmibqz9msx1k4x2","priority":0,"purchasedAt":{"d":7,"m":9},"text":"小麦粉　🌾"},{"done":true,"id":"hjb3suvda3fmsx13bhz","priority":0,"purchasedAt":{"d":7,"m":9},"text":"バナナ　🍌"},{"done":true,"id":"n3ygq8t6h3msx113a2","priority":0,"purchasedAt":{"d":7,"m":9},"text":"トマト　🍅"},{"done":true,"id":"vidgkqage8mszfy1xc","priority":0,"purchasedAt":{"d":7,"m":9},"text":"ドレッシング　🥗"},{"done":true,"id":"t74dcouailemswpr69b","priority":0,"purchasedAt":{"d":7,"m":9},"text":"麦茶　🥃"},{"done":true,"id":"eyrkmpgx3fdmsx1izh3","priority":0,"purchasedAt":{"d":2,"m":9},"text":"りんご　🍎"},{"done":true,"id":"z0k6syd7n5msy10met","priority":0,"purchasedAt":{"d":2,"m":9},"text":"納豆　🫘"},{"done":true,"id":"4vfl895a4h8msxa080t","priority":0,"text":"カレー　🍛"},{"done":true,"id":"41pr5ukltwqmsx1hrd1","priority":0,"purchasedAt":{"d":29,"m":8},"text":"干し葡萄　🍇"},{"done":true,"id":"43ion8oq85hmswpv1db","priority":0,"purchasedAt":{"d":29,"m":8},"text":"コーヒーフィルター"},{"done":true,"id":"mgexflhmouhmsx12y41","priority":0,"purchasedAt":{"d":29,"m":8},"text":"チーズ　🧀"},{"done":true,"id":"83nbo4sv93xmsx1d843","priority":0,"purchasedAt":{"d":29,"m":8},"text":"バター　🧈"},{"done":true,"id":"gs5dqczq42msx78qrg","priority":0,"purchasedAt":{"d":29,"m":8},"text":"マヨネーズ"},{"done":true,"id":"4c73mmcwcz4msx14dza","priority":0,"purchasedAt":{"d":29,"m":8},"text":"コーヒー　☕️"},{"done":true,"id":"7d99ex9i6rjmsx127f7","priority":0,"purchasedAt":{"d":29,"m":8},"text":"レタス　🥬"},{"done":true,"id":"jz2nlvumtdemsx1gw9u","priority":0,"purchasedAt":{"d":24,"m":8},"text":"ゴミ袋　🗑️"},{"done":true,"id":"xqsji87zcqgmsx1o6qq","priority":0,"text":"牛乳　🥛"},{"done":true,"id":"929b5itsk7msx1hcei","priority":0,"text":"シンクのゴミネット"},{"done":true,"id":"rvk472jmzimsx1fqro","priority":0,"text":"さつまいも　🍠"},{"done":true,"id":"4xyl42oezpmsx1fib6","priority":0,"text":"オレンジ　🍊"},{"done":true,"id":"d8zwbyppuormsx1dz14","priority":0,"text":"シャンプー　🧴"},{"done":true,"id":"0lmn0bwfp3k9mswq0tdw","priority":0,"text":"水餃子"},{"done":true,"id":"1tb8q15cn26mswq102l","priority":0,"text":"餃子　🥟"},{"done":true,"id":"z6iif89rdymswpyyrg","priority":0,"text":"スキムミルク"},{"done":true,"id":"iqoo9hil9omswpu0j5","priority":0,"text":"ゆずポン"},{"done":true,"id":"1mjhh77510amsx74sul","priority":0,"text":"ドライイースト"},{"done":true,"id":"mmgct7sb7aqmsxa1x8c","priority":0,"text":"ビール　🍺"},{"done":true,"id":"mba7ec0zvdkmsxa3kx4","priority":0,"text":"チョコレート　🍫"},{"done":true,"id":"hsrr7d0zqrpmsxa3yp6","priority":0,"text":"サラダ　🥗"},{"done":true,"id":"lcj6ptxxtyemsxa91bt","priority":0,"text":"キウイ　🥝"},{"done":true,"id":"1ji6cxhymmdmsxaf0zw","priority":0,"text":"歯磨き　🪥"}];
   var dbRef = null;
   var fb = null; // holds {set, onValue} once the SDK has loaded
   var syncTimer = null;
@@ -389,7 +393,7 @@
       var getDatabase = mods[1].getDatabase, ref = mods[1].ref, onValue = mods[1].onValue, set = mods[1].set;
       var app = initializeApp(FIREBASE_CONFIG);
       var db = getDatabase(app);
-      dbRef = ref(db, 'sharedList');
+      dbRef = ref(db, 'sharedList/tatsuo');
       fb = { onValue: onValue, set: set };
 
       syncStatusEl.hidden = false;
@@ -404,7 +408,12 @@
       onValue(dbRef, function(snapshot){
         var data = snapshot.val();
         if(data == null){
-          pushToFirebase();
+          if(MIGRATION_SEED){
+            applyRemote(MIGRATION_SEED);
+            pushToFirebase();
+          } else {
+            pushToFirebase();
+          }
           return;
         }
         if(JSON.stringify(data) === JSON.stringify(items)) return;
