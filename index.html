@@ -306,6 +306,9 @@
     color:var(--ink-muted);
     white-space:nowrap;
   }
+  .purchased-label .purchased-days{
+    font-size:15px;
+  }
 
   .drag-ghost{
     position:fixed;
@@ -547,7 +550,16 @@
       purchasedLabel.className = 'purchased-label';
       if(item.purchasedAt){
         var daysAgo = daysSincePurchase(item.purchasedAt);
-        purchasedLabel.textContent = daysAgo <= 0 ? '今日購入' : daysAgo + '日前購入';
+        purchasedLabel.innerHTML = '';
+        if(daysAgo <= 0){
+          purchasedLabel.appendChild(document.createTextNode('今日購入'));
+        } else {
+          var daysSpan = document.createElement('span');
+          daysSpan.className = 'purchased-days';
+          daysSpan.textContent = daysAgo + '日前';
+          purchasedLabel.appendChild(daysSpan);
+          purchasedLabel.appendChild(document.createTextNode('購入'));
+        }
       }
       row.appendChild(purchasedLabel);
     } else {
